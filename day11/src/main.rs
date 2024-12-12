@@ -1,13 +1,3 @@
-fn print_debug(input: &Vec<usize>) {
-    let mut buffer = "".to_string();
-    for i in input {
-        let fmt = format!("{i}");
-        buffer.push_str(&fmt);
-        buffer.push_str("\t");
-    }
-    println!("{buffer}");
-}
-
 fn main() {
     let file_path = "input/input.txt";
     let contents = std::fs::read_to_string(file_path)
@@ -77,7 +67,7 @@ mod part1 {
 }
 
 mod part2 {
-    use rayon::prelude::*;
+    use std::collections::HashMap;
 
     #[inline]
     fn number_of_digits(value: usize) -> usize {
@@ -102,45 +92,52 @@ mod part2 {
         (left_side, right_side)
     }
 
+    fn add_cache(cache: &mut HashMap<BlinkerCache, usize>, input: usize, depth: usize, result: usize) {
+        let val = BlinkerCache {
+            input: input,
+            depth: depth
+        };
+        _ = cache.insert(val, result);
+    }
+
+    fn get_cached(cache: &HashMap<BlinkerCache, usize>, input: usize, depth: usize) -> Option<usize> {
+        let val = BlinkerCache {
+            input: input,
+            depth: depth
+        };
+        match cache.get(&val) {
+            Some(v) => Some(*v),
+            None => None
+        }
+    }
+
+
     #[inline]
-    fn blink_stone_counter(input: Vec<usize>, depth: usize, max_depth: usize) -> usize {
-        if depth == max_depth {
-            return input.len();
-        }
-        let mut idx = 0;
-        let mut input = input;
-        loop {
-            if idx >= input.len() {
-                break
+    fn blink_stone_counter(input: usize, cache: &mut HashMap<BlinkerCache, usize>, depth: usize) -> usize {
+        let mut wrapper = || {
+            if depth == 0 {
+                return 1;
             }
 
-            let val = input[idx];
+            if let Some(cached_val) = get_cached(cache, input, depth) {
+                return cached_val;
+            }
 
-            if val == 0 {
-                input[idx] = 1
-            } else if is_double_digit(val) {
-                let new_vals = split_digits(val);
-                input[idx] = new_vals.1;
-                input.insert(idx, new_vals.0);
-                idx +=1;
+            if input == 0 {
+                return blink_stone_counter(1, cache, depth - 1)
+            } else if is_double_digit(input) {
+                let new_vals = split_digits(input);
+                let left = blink_stone_counter(new_vals.1, cache, depth - 1);
+                let right = blink_stone_counter(new_vals.0, cache, depth - 1);
+                return left + right;
             } else {
-                input[idx] = val * 2024;
+                return blink_stone_counter(input * 2024, cache, depth - 1);
             }
+        };
 
-            idx += 1;
-        }
-
-        let collected: Vec<usize> = input.par_iter().map(|it| {
-            let input = vec![*it];
-            let res = blink_stone_counter(input, depth + 1, max_depth);
-            return res
-        }).collect();
-
-        let mut sum = 0;
-        for f in collected {
-            sum += f;
-        }
-        return sum
+        let res = wrapper();
+        add_cache(cache, input, depth, res);
+        res
     }
 
     fn blink_n_times(input: &Vec<usize>, times: usize) {
@@ -148,9 +145,10 @@ mod part2 {
             return
         }
 
-        let collected: Vec<usize> = input.par_iter().map(|it| {
-            let input = vec![*it];
-            let res = blink_stone_counter(input, 0, times);
+        let mut cache = HashMap::<BlinkerCache, usize>::new();
+
+        let collected: Vec<usize> = input.iter().map(|it| {
+            let res = blink_stone_counter(*it, &mut cache, times);
             return res
         }).collect();
 
@@ -162,12 +160,18 @@ mod part2 {
         println!("Part 2 result: {sum}");
     }
 
+    #[derive(Debug, PartialEq, Eq, Hash)]
+    struct BlinkerCache {
+        pub input: usize,
+        pub depth: usize
+    }
+
     pub fn run(contents: &str) {
         let input: Vec<usize> = contents.split_whitespace()
                                         .map(|it| it.parse().unwrap())
                                         .collect();
 
-        blink_n_times(&input, 25);
+        blink_n_times(&input, 75);
     }
 
     #[cfg(test)]
