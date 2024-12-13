@@ -1,7 +1,7 @@
 use std::collections::{HashSet, HashMap};
 
 fn main() {
-    let file_path = "input/input-sample3.txt";
+    let file_path = "input/input.txt";
     let contents = std::fs::read_to_string(file_path)
         .expect("Should have been able to read the file");
 
@@ -267,6 +267,34 @@ mod part1 {
         };
 
         let plots = find_plots(&mut cache);
+        let mut result: usize = 0;
+
+        for plot in plots {
+
+            let mut perimeter = 0;
+            for pos in &plot.positions {
+                if cache.has_bottom_border_at(&pos) {
+                    perimeter += 1;
+                }
+                if cache.has_top_border_at(&pos) {
+                    perimeter += 1;
+                }
+                if cache.has_left_border_at(&pos) {
+                    perimeter += 1;
+                }
+                if cache.has_right_border_at(&pos) {
+                    perimeter += 1;
+                }
+            }
+            let area = &plot.positions.len();
+            let price = area * perimeter;
+            let name = plot.name;
+            //println!("Plot [{name}] area [{area}] perimeter [{perimeter}] price {price}");
+            result += price;
+        }
+
+        println!("Part 1 result: {result}");
+
     }
 
     fn find_plots(cache: &mut Cache) -> Vec<Plot> {
@@ -283,9 +311,9 @@ mod part1 {
                 };
                 find_plot_visiting(cache, &mut visited, &mut current_plot, position);
                 if current_plot.positions.len() > 0 {
-                    super::print_debug_plot(cache, &current_plot);
+                    //super::print_debug_plot(cache, &current_plot);
                     plots.push(current_plot);
-                    println!("====================================================================================");
+                    //println!("====================================================================================");
                 }
             }
         }
