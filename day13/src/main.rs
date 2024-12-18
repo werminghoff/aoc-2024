@@ -47,7 +47,7 @@ fn parse(contents: &str) -> Vec<ClawMachine> {
 }
 
 fn main() {
-    let file_path = "input/input-sample.txt";
+    let file_path = "input/input.txt";
     let contents = std::fs::read_to_string(file_path)
         .expect("Should have been able to read the file");
 
@@ -142,7 +142,6 @@ mod part2 {
     use crate::ClawMachine;
 
     const ADDED_VALUE: usize = 10000000000000;
-    //const ADDED_VALUE: usize = 10000000;
 
     pub fn fix_added_value(input: &Vec<ClawMachine>) -> Vec<ClawMachine> {
         input.iter().map(|it| {
@@ -161,50 +160,45 @@ mod part2 {
 
         let mut min_tokens: usize = 0;
 
-        // for machine in input {
-        //     min_tokens += calc_min_tokens(&machine);
-        // }
+        let results: Vec<usize> = input.iter().map(|it| {
+            calc_min_tokens(it)
+        }).collect();
 
-        calc_min_tokens(&input[0]);
+        for res in results {
+            min_tokens += res;
+        }
 
         println!("Part 2 result: {min_tokens}");
-
     }
 
     fn calc_min_tokens(machine: &ClawMachine) -> usize {
         let button_a = &machine.offset_btn_a;
         let button_b = &machine.offset_btn_b;
         let prize = &machine.prize_position;
-
-        let mut b_presses: usize = (prize.x / button_b.x).min(prize.y / button_b.y);
-        let mut a_presses: usize = 0;
-
-        loop {
-            let total_x = button_b.x * b_presses + button_a.x * a_presses;
-            let total_y = button_b.y * b_presses + button_a.y * a_presses;
-
-            // println!("Presses: [a={a_presses}] [b={b_presses}]");
-            // println!("TotalX: {total_x}");
-            // println!("TotalY: {total_y}");
-            // println!("");
-
-            if total_x == prize.x && total_y == prize.y {
-                return a_presses * super::PRICE_BUTTON_A + b_presses * super::PRICE_BUTTON_B;
-            } else if total_x > prize.x || total_y > prize.y {
-
-                if b_presses == 0 {
-                    return 0
-                }
-
-                b_presses -= 1;
-            } else {
-                a_presses += 1;
-            }
-        }
         
+        let ax = button_a.x as i64;
+        let ay = button_a.y as i64;
 
-        // (button_a.x * a_presses) + (button_b.x * b_presses) == prize.x
-        // (button_a.y * a_presses) + (button_b.y * b_presses) == prize.y
+        let bx = button_b.x as i64;
+        let by = button_b.y as i64;
+
+        let px = prize.x as i64;
+        let py = prize.y as i64;
+
+        // thx 3Blue1Brown @ YT
+        // https://www.youtube.com/watch?v=jBsC34PxzoM
+
+        let det_area = ax * by - ay * bx;
+        let det_a = px * by - py * bx;
+        let det_b = py * ax - px * ay;
+
+        if det_a % det_area == 0 && det_b % det_area == 0 {
+            let price_a = super::PRICE_BUTTON_A as i64 * det_a / det_area;
+            let price_b = super::PRICE_BUTTON_B as i64 * det_b / det_area;
+            (price_a + price_b) as usize
+        } else {
+            0
+        }
     }
 
 }
